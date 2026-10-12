@@ -28,9 +28,18 @@ gh repo create gefos-ai-hub --public --source=. --remote=origin --push
 # bez gh: založ prázdné repo na github.com/new a pak
 # git remote add origin https://github.com/<ucet>/gefos-ai-hub.git && git push -u origin main
 ```
-Pak ve Vercelu: projekt gefos-ai-hub → Settings → Git → Connect → vyber repo. Každý push se nasadí sám.
+## 3) Vercel
+Nejjednodušší je napojit repo (každý push se pak nasadí sám):
+vercel.com/new → Import `gefos-ai-hub` → Framework: **Other** → Deploy.
 
-## 3) Vlastní Firebase projekt pro GEFOS (doporučeno)
+Nebo z terminálu:
+```bash
+npm i -g vercel
+cd gefos-ai-hub
+vercel --prod     # první spuštění se zeptá na účet a název projektu: gefos-ai-hub
+```
+
+## 4) Vlastní Firebase projekt pro GEFOS (doporučeno)
 Teď appka běží na Firebase projektu MAUTING, jen v oddělené kolekci. Pro klienta je čistší vlastní projekt:
 ```bash
 npm i -g firebase-tools
