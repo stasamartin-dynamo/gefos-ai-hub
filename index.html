@@ -300,7 +300,6 @@ main{max-width:1180px;margin:0 auto;padding:26px 22px 80px;width:100%;flex:1}
       <nav class="tabs" id="tabs">
         <button data-view="dashboard" class="active">Nástěnka</button>
         <button data-view="usecases">Use case</button>
-        <button data-view="drawer">V šuplíku <span class="tab-count" id="drawerCount"></span></button>
         <button data-view="contacts">Kontakty</button>
       </nav>
       <div class="spacer"></div>
@@ -311,7 +310,6 @@ main{max-width:1180px;margin:0 auto;padding:26px 22px 80px;width:100%;flex:1}
   <main>
     <section id="view-dashboard"></section>
     <section id="view-usecases" class="hidden"></section>
-    <section id="view-drawer" class="hidden"></section>
     <section id="view-contacts" class="hidden"></section>
   </main>
 </div>
@@ -399,7 +397,7 @@ const freq= id => FREQUENCIES.find(f=>f.id===id) || {name:"—"};
 /* =================== STAV / ÚLOŽIŠTĚ =================== */
 let state = { contacts:[], usecases:[], departments:[] };
 let editingUC=null, editingContact=null;
-let filterDep="all", filterStatus="all", drawerSort="revisit";
+let filterDep="all", filterStatus="all";
 
 const memFallback={};
 const COLLECTION="gefos-ai-hub";
@@ -492,7 +490,7 @@ function seedDemo(){
 document.getElementById('tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;switchTo(b.dataset.view);});
 function switchTo(view){
   document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('active',x.dataset.view===view));
-  ['dashboard','usecases','drawer','contacts'].forEach(v=>document.getElementById('view-'+v).classList.toggle('hidden',v!==view));
+  ['dashboard','usecases','contacts'].forEach(v=>document.getElementById('view-'+v).classList.toggle('hidden',v!==view));
 }
 
 /* =================== DEPARTMENTS =================== */
@@ -509,7 +507,7 @@ function addDepartment(){
 }
 
 /* =================== RENDER =================== */
-function renderAll(){renderDashboard();renderUsecases();renderDrawer();renderContacts();}
+function renderAll(){renderDashboard();renderUsecases();renderContacts();}
 
 /* ---------- DASHBOARD ---------- */
 function renderDashboard(){
@@ -535,7 +533,7 @@ function renderDashboard(){
       <div class="stat" style="--sc:${st('hotovo').hex}"><div class="label">Hotovo</div><div class="big">${counts.hotovo||0}</div></div>
       <div class="stat" style="--sc:${st('suplik').hex}"><div class="label">V šuplíku</div><div class="big">${counts.suplik||0}</div></div>
     </div>
-    ${dueCount?`<div class="shelf-banner">🗄 <span>V šuplíku ${dueCount===1?'je':'jsou'} <b>${dueCount}</b> ${dueCount===1?'use case, ke kterému':'use case, ke kterým'} je čas se vrátit.</span><button class="btn-ghost" id="goDrawer">Otevřít šuplík</button></div>`:""}
+    ${dueCount?`<div class="shelf-banner">🗄 <span>V šuplíku ${dueCount===1?'je':'jsou'} <b>${dueCount}</b> ${dueCount===1?'use case, ke kterému':'use case, ke kterým'} je čas se vrátit – najdete ${dueCount===1?'ho':'je'} ve sloupci V šuplíku.</span></div>`:""}
 
     <div class="filterbar">
       <div class="chips" id="depChips">
@@ -555,7 +553,6 @@ function renderDashboard(){
     const b=e.target.closest('.chip');if(!b||!b.dataset.dep)return;filterDep=b.dataset.dep;renderDashboard();
   });
   root.querySelector('#goAdd').addEventListener('click',()=>switchTo('usecases'));
-  const gd=root.querySelector('#goDrawer'); if(gd) gd.addEventListener('click',()=>switchTo('drawer'));
 
   const board=root.querySelector('#board');
   let visible=all.filter(u=>filterDep==='all'||u.department===filterDep);
@@ -759,70 +756,6 @@ function saveUC(){
   if(editingUC){Object.assign(editingUC,data);toast("Změny uloženy");editingUC=null;}
   else{state.usecases.push({id:uid(),createdAt:Date.now(),...data});toast("Use case přidán");}
   save("usecases",state.usecases);renderAll();
-}
-
-/* ---------- V ŠUPLÍKU ---------- */
-function renderDrawer(){
-  const root=document.getElementById('view-drawer');
-  const items=state.usecases.filter(u=>u.status==="suplik");
-  const due=items.filter(isDue).length;
-  document.getElementById('drawerCount').textContent=items.length||"";
-  const sorters={
-    revisit:(a,b)=>(a.shelfRevisit||"9999")<(b.shelfRevisit||"9999")?-1:1,
-    value:(a,b)=>(+b.shelfValue||0)-(+a.shelfValue||0),
-    newest:(a,b)=>(b.shelvedAt||0)-(a.shelvedAt||0),
-  };
-  items.sort(sorters[drawerSort]||sorters.revisit);
-  root.innerHTML=`
-    <div class="view-head">
-      <div><div class="eyebrow">Dobré nápady na později</div><h2>V šuplíku</h2>
-      <p>Use case, které jsme vyhodnotili jako dobré, ale jejich řešení jsme posunuli. Nic se neztratí – jen čeká na správnou chvíli.</p></div>
-    </div>
-    ${due?`<div class="shelf-banner">⏰ <span>U <b>${due}</b> ${due===1?'položky':'položek'} už nastal termín „vrátit se k tomu“. Rozhodněte: vytáhnout, nebo posunout.</span></div>`:""}
-    ${items.length?`<div class="drawer-tools"><span class="chips-label" style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Řadit</span>
-      <select id="drawerSort">
-        <option value="revisit" ${drawerSort==='revisit'?'selected':''}>Podle termínu návratu</option>
-        <option value="value" ${drawerSort==='value'?'selected':''}>Podle přínosu</option>
-        <option value="newest" ${drawerSort==='newest'?'selected':''}>Naposledy odložené</option>
-      </select></div>
-      <div class="drawer-grid">${items.map(drawerCard).join("")}</div>`
-    :`<div class="empty"><div class="ico">🗄</div><h3>Šuplík je prázdný</h3><p>Use case sem přesunete změnou stavu na „V šuplíku“ – na nástěnce nebo ve formuláři.</p></div>`}
-  `;
-  const sel=root.querySelector('#drawerSort'); if(sel) sel.addEventListener('change',()=>{drawerSort=sel.value;renderDrawer();});
-  root.querySelectorAll('[data-pull]').forEach(b=>b.addEventListener('click',()=>{
-    const uc=state.usecases.find(u=>u.id===b.dataset.pull); if(!uc) return;
-    uc.status=b.dataset.to; uc.pulledAt=Date.now();
-    save("usecases",state.usecases); renderAll(); toast("Vytaženo ze šuplíku – je zpět v pipeline");
-  }));
-  root.querySelectorAll('[data-postpone]').forEach(b=>b.addEventListener('click',()=>{
-    const uc=state.usecases.find(u=>u.id===b.dataset.postpone); if(!uc) return;
-    const rev=prompt("Nový termín návratu (RRRR-MM):",uc.shelfRevisit||"");
-    if(rev && /^\d{4}-\d{2}$/.test(rev.trim())){uc.shelfRevisit=rev.trim();save("usecases",state.usecases);renderAll();toast("Termín posunut");}
-    else if(rev!==null) toast("Zadejte termín ve tvaru RRRR-MM");
-  }));
-  root.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>openUseCase(b.dataset.edit)));
-}
-function drawerCard(u){
-  const d=dep(u.department), due=isDue(u);
-  return `<div class="drawer-card ${due?'due':''}" style="--dep:${d.hex}">
-    <span class="dep-tag" style="--dep:${d.hex};display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:${d.hex};align-self:flex-start"><span style="width:7px;height:7px;border-radius:50%;background:${d.hex}"></span>${esc(d.name)}</span>
-    <h4>${esc(u.title)}</h4>
-    ${u.description?`<p class="desc">${esc(u.description)}</p>`:""}
-    ${u.shelfReason?`<div class="why"><span class="k">Proč čeká</span>${esc(u.shelfReason)}</div>`:""}
-    ${u.shelfTrigger?`<div class="why" style="background:var(--paper);border-color:var(--line);color:var(--ink)"><span class="k" style="color:var(--muted)">Vytáhneme, až…</span>${esc(u.shelfTrigger)}</div>`:""}
-    <div class="facts">
-      <span class="fact ${due?'due':''}">${due?'⏰ ':''}vrátit se <span class="mv">${fmtMonth(u.shelfRevisit)}</span></span>
-      ${u.shelfValue?`<span class="fact">přínos <span class="stars">${stars(u.shelfValue)}</span></span>`:""}
-      ${u.saveValue?`<span class="fact">úspora <span class="mv">${fmtSave(u)}</span> ${esc(freq(u.frequency).name.toLowerCase())}</span>`:""}
-      ${u.submitter?`<span class="fact">${esc(u.submitter)}</span>`:""}
-    </div>
-    <div class="acts">
-      <button class="btn-primary" data-pull="${u.id}" data-to="vyhodnoc" title="Vrátit do stavu Vyhodnocujeme">↩ Vytáhnout</button>
-      <button class="btn-ghost" data-postpone="${u.id}">Posunout</button>
-      <span class="spacer"></span>
-      <button class="icon-btn" data-edit="${u.id}" title="Upravit">✎</button>
-    </div>
-  </div>`;
 }
 
 /* ---------- CONTACTS ---------- */
