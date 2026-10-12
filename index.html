@@ -1,0 +1,858 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GEFOS AI Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EEF2F6; --surface:#FFFFFF; --ink:#161A1D; --muted:#697079;
+  --line:#E2E5E9; --line-strong:#D2D7DD;
+  /* GEFOS – barvy na jednom místě (uprav podle loga) */
+  --primary:#0F2A47; --primary-2:#081B30; --primary-soft:#E6ECF3;
+  --brand:#005BAA; --brand-2:#00467F; --brand-soft:#E3EEF8; --brand-line:#BBD3EC;
+  --accent:#D98A00; --accent-soft:#FFF1D6;
+  --shelf:#8A6A1F; --shelf-soft:#F6EFDD; --shelf-line:#E5D6AE;
+  --dev:#0E5C56; --dev-soft:#E1F0EE;
+  --shadow:0 1px 2px rgba(20,26,29,.04), 0 8px 24px -12px rgba(20,26,29,.18);
+  --shadow-lg:0 24px 60px -24px rgba(20,26,29,.35);
+  --r:14px; --r-sm:10px;
+  --s-zadano:#6B7280; --s-vyhodnoc:#2563EB; --s-vbehu:#D97706; --s-hotovo:#16A34A; --s-zamitnuto:#DC2626;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:"Inter",system-ui,sans-serif;color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;line-height:1.5}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
+:focus-visible{outline:2.5px solid var(--brand);outline-offset:2px;border-radius:6px}
+.mono{font-family:"JetBrains Mono",monospace}
+.hidden{display:none !important}
+
+/* ---------- LOGIN ---------- */
+#login{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;
+  background:radial-gradient(900px 500px at 15% -10%, var(--brand-soft), transparent 60%),
+             radial-gradient(700px 500px at 110% 110%, var(--primary-soft), transparent 55%), var(--paper);}
+#login::before{content:"";position:absolute;inset:0;opacity:.5;pointer-events:none;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:44px 44px;mask-image:radial-gradient(circle at 50% 40%,#000,transparent 75%)}
+.login-card{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:22px;
+  box-shadow:var(--shadow-lg);width:100%;max-width:390px;padding:32px 30px 28px;text-align:center}
+.login-logo img{width:210px;max-width:72%;height:auto;display:block;margin:0 auto 14px}
+.login-eyebrow{font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--brand);margin-bottom:16px}
+.login-card h1{font-family:"Bricolage Grotesque";font-weight:700;font-size:22px;margin:0 0 4px;letter-spacing:-.02em}
+.login-card p.sub{color:var(--muted);font-size:13.5px;margin:0 0 22px}
+.pin-dots{display:flex;gap:13px;justify-content:center;margin:6px 0 18px}
+.pin-dots .dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--line-strong);background:transparent;transition:.18s}
+.pin-dots .dot.on{background:var(--brand);border-color:var(--brand);transform:scale(1.06)}
+.pin-dots.err .dot{border-color:var(--s-zamitnuto);animation:shake .4s}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
+.keypad button{height:56px;border:1px solid var(--line);background:var(--surface);border-radius:14px;
+  font-family:"JetBrains Mono";font-size:21px;font-weight:500;color:var(--ink);transition:.12s}
+.keypad button:hover{background:#F6F7F8;border-color:var(--line-strong)}
+.keypad button:active{transform:translateY(1px);background:var(--brand-soft)}
+.keypad button.util{font-family:"Inter";font-size:13px;color:var(--muted);font-weight:600}
+.login-hint{margin-top:18px;font-size:12px;color:var(--muted)}
+.login-hint b{color:var(--brand);font-family:"JetBrains Mono"}
+
+/* ---------- SHELL ---------- */
+#app{min-height:100vh;display:flex;flex-direction:column}
+header.topbar{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.9);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.topbar-inner{max-width:1180px;margin:0 auto;padding:11px 22px;display:flex;align-items:center;gap:16px}
+.brand-lockup{display:flex;align-items:center;gap:13px}
+.brand-lockup .logo-img{height:30px;display:block}
+.brand-sep{width:1px;height:22px;background:var(--line-strong)}
+.brand-sub{font-family:"Bricolage Grotesque";font-weight:700;font-size:15px;color:var(--ink);letter-spacing:-.01em}
+nav.tabs{display:flex;gap:4px;margin-left:6px;background:var(--paper);padding:4px;border-radius:12px}
+nav.tabs button{border:none;background:transparent;padding:8px 15px;border-radius:9px;font-size:13.5px;font-weight:600;color:var(--muted)}
+nav.tabs button.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+.spacer{flex:1}
+.btn-logout{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 13px;font-size:13px;font-weight:600;color:var(--muted)}
+.btn-logout:hover{border-color:var(--line-strong);color:var(--ink)}
+.cloud-note{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted);background:var(--surface);border:1px solid var(--line);padding:5px 10px;border-radius:999px}
+.cloud-note .d{width:7px;height:7px;border-radius:50%;background:var(--s-hotovo)}
+.cloud-note .d.off{background:var(--accent)}
+
+main{max-width:1180px;margin:0 auto;padding:26px 22px 80px;width:100%;flex:1}
+.view-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.view-head h2{font-family:"Bricolage Grotesque";font-weight:800;font-size:27px;letter-spacing:-.025em;margin:0}
+.view-head .eyebrow{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--brand);margin-bottom:5px}
+.view-head p{color:var(--muted);font-size:14px;margin:4px 0 0}
+
+.btn-primary{background:var(--primary);color:#fff;border:none;border-radius:11px;padding:11px 17px;font-size:14px;font-weight:600;
+  display:inline-flex;align-items:center;gap:8px;box-shadow:var(--shadow);transition:.14s}
+.btn-primary:hover{background:var(--primary-2)}
+.btn-primary:active{transform:translateY(1px)}
+.btn-ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:11px;padding:10px 15px;font-size:13.5px;font-weight:600}
+.btn-ghost:hover{border-color:var(--line-strong)}
+
+/* ---------- STATS ---------- */
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.stat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--sc,var(--line))}
+.stat .label{font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:7px}
+.stat .big{font-family:"JetBrains Mono";font-weight:700;font-size:32px;letter-spacing:-.02em;line-height:1}
+
+/* ---------- FILTERS ---------- */
+.filterbar{margin-bottom:20px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chips .chips-label{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-right:2px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 13px;font-size:13px;font-weight:600;color:var(--muted);
+  display:inline-flex;align-items:center;gap:7px;transition:.12s}
+.chip .swatch{width:9px;height:9px;border-radius:50%}
+.chip:hover{border-color:var(--line-strong)}
+.chip.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+.chip.active .swatch{box-shadow:0 0 0 2px rgba(255,255,255,.4)}
+.chip.add{border-style:dashed;color:var(--brand);border-color:var(--brand-line)}
+.chip.add:hover{background:var(--brand-soft)}
+
+/* ---------- KANBAN ---------- */
+.board{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:13px;align-items:start}
+.col{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:11px;min-height:120px}
+.col-head{display:flex;align-items:center;gap:8px;padding:3px 4px 11px;font-weight:700;font-size:13px}
+.col-head .swatch{width:10px;height:10px;border-radius:3px}
+.col-head .count{margin-left:auto;font-family:"JetBrains Mono";font-size:12px;background:var(--surface);border:1px solid var(--line);padding:1px 8px;border-radius:999px;color:var(--muted)}
+.col-empty{color:var(--muted);font-size:12.5px;text-align:center;padding:20px 8px;border:1px dashed var(--line-strong);border-radius:10px}
+
+.uc-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px 13px 11px;margin-bottom:10px;box-shadow:var(--shadow);position:relative;overflow:hidden;cursor:pointer;transition:.14s}
+.uc-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--dep,#ccc)}
+.uc-card:hover{border-color:var(--line-strong);box-shadow:0 1px 2px rgba(20,26,29,.04), 0 12px 28px -12px rgba(20,26,29,.28);transform:translateY(-1px)}
+.uc-card:focus-visible{outline:2.5px solid var(--brand);outline-offset:2px}
+.uc-card .open-hint{position:absolute;top:13px;right:13px;font-size:11px;color:var(--muted);opacity:0;transition:.14s}
+.uc-card:hover .open-hint{opacity:1}
+.uc-card .dep-tag{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--dep);
+  background:color-mix(in srgb,var(--dep) 11%,#fff);border:1px solid color-mix(in srgb,var(--dep) 22%,#fff);padding:3px 8px;border-radius:999px;margin-bottom:8px}
+.uc-card h4{font-size:14.5px;font-weight:700;margin:0 0 5px;letter-spacing:-.01em;line-height:1.3}
+.uc-card .desc{font-size:12.5px;color:var(--muted);margin:0 0 11px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.uc-card .metrics{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.uc-card .metric{font-size:11px;background:var(--paper);border:1px solid var(--line);border-radius:7px;padding:4px 8px;color:var(--ink)}
+.uc-card .metric.save{background:var(--accent-soft);border-color:#F2D9A6;color:#7A4D00;font-weight:600}
+.uc-card .metric .mv{font-family:"JetBrains Mono";font-weight:700}
+.dev-box{background:var(--dev-soft);border:1px solid #C9E3DF;border-radius:9px;padding:9px 10px;margin-bottom:10px}
+.dev-box .dev-h{font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--dev);margin-bottom:5px;display:flex;align-items:center;gap:5px}
+.dev-box .dev-sol{font-size:12px;color:#173f3b;margin:0 0 7px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.dev-box .dev-pills{display:flex;gap:6px;flex-wrap:wrap}
+.dev-box .dev-pill{font-size:10.5px;background:#fff;border:1px solid #C9E3DF;border-radius:6px;padding:3px 7px;color:var(--dev);font-weight:600}
+.dev-box .dev-pill .mv{font-family:"JetBrains Mono"}
+.uc-card .foot{display:flex;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:9px}
+.uc-card .who{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:6px;min-width:0}
+.uc-card .who .av{width:20px;height:20px;border-radius:50%;background:var(--primary-soft);color:var(--primary);display:grid;place-items:center;font-size:10px;font-weight:700;flex-shrink:0}
+.uc-card .who span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.uc-card select.status-mini{margin-left:auto;font-size:11px;font-weight:600;border:1px solid var(--line);border-radius:7px;padding:4px 6px;background:var(--surface);color:var(--st)}
+
+/* ---------- MANAGE ---------- */
+.split{display:grid;grid-template-columns:400px 1fr;gap:22px;align-items:start}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.panel .panel-head{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+.panel .panel-head h3{font-family:"Bricolage Grotesque";font-weight:700;font-size:16px;margin:0}
+.panel .panel-head .badge-edit{font-size:11px;font-weight:700;color:var(--brand);background:var(--brand-soft);padding:3px 9px;border-radius:999px}
+.panel .panel-body{padding:18px}
+.form-sticky{position:sticky;top:76px}
+.form-section{margin:18px 0 8px;padding-top:14px;border-top:1px dashed var(--line-strong);font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--dev);display:flex;align-items:center;gap:6px}
+
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;color:var(--ink)}
+.field label .opt{color:var(--muted);font-weight:500}
+.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface);transition:.12s}
+.field input:hover,.field select:hover,.field textarea:hover{border-color:var(--line-strong)}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+.field textarea{resize:vertical;min-height:64px}
+.dep-select-row{display:flex;gap:8px;align-items:stretch}
+.dep-select-row select{flex:1}
+.btn-add-dep{flex-shrink:0;border:1px dashed var(--brand-line);background:var(--brand-soft);color:var(--brand);border-radius:10px;padding:0 13px;font-size:13px;font-weight:700}
+.btn-add-dep:hover{background:var(--brand-line)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field-row3{display:grid;grid-template-columns:1.4fr 1fr;gap:12px}
+.form-actions{display:flex;gap:9px;margin-top:10px}
+.form-actions .btn-primary{flex:1;justify-content:center}
+
+.uc-list{display:flex;flex-direction:column;gap:10px}
+.uc-row{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px 15px;box-shadow:var(--shadow);
+  display:grid;grid-template-columns:6px 1fr auto;gap:13px;align-items:center;position:relative}
+.uc-row .spine{width:6px;height:100%;min-height:40px;border-radius:4px;background:var(--dep)}
+.uc-row .main h4{font-size:14.5px;margin:0 0 5px;font-weight:700}
+.uc-row .main .meta{display:flex;gap:8px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);align-items:center}
+.uc-row .main .meta .pill{display:inline-flex;align-items:center;gap:5px;background:var(--paper);border:1px solid var(--line);padding:2px 8px;border-radius:999px}
+.uc-row .main .meta .pill.dev{background:var(--dev-soft);border-color:#C9E3DF;color:var(--dev);font-weight:600}
+.uc-row .main .meta .pill .sw{width:8px;height:8px;border-radius:50%}
+.uc-row .ops{display:flex;gap:6px}
+.icon-btn{border:1px solid var(--line);background:var(--surface);border-radius:9px;width:34px;height:34px;display:grid;place-items:center;color:var(--muted)}
+.icon-btn:hover{border-color:var(--line-strong);color:var(--ink)}
+.icon-btn.danger:hover{border-color:#F3C0C0;color:var(--s-zamitnuto);background:#FEF3F3}
+
+/* ---------- CONTACTS ---------- */
+.contact-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:13px}
+.contact-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:15px;box-shadow:var(--shadow);display:flex;gap:12px;align-items:flex-start}
+.contact-card .av{width:42px;height:42px;border-radius:11px;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;font-weight:700;font-size:16px;flex-shrink:0;font-family:"Bricolage Grotesque"}
+.contact-card .ci{min-width:0;flex:1}
+.contact-card .ci h4{margin:0 0 4px;font-size:15px;font-weight:700}
+.contact-card .ci a,.contact-card .ci .ph{display:block;font-size:12.5px;color:var(--muted);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.contact-card .ci a:hover{color:var(--brand)}
+.contact-card .cops{display:flex;flex-direction:column;gap:5px}
+
+.empty{text-align:center;padding:60px 24px;color:var(--muted);border:1px dashed var(--line-strong);border-radius:var(--r);background:var(--surface)}
+.empty .ico{font-size:30px;margin-bottom:10px;opacity:.6}
+.empty h3{font-family:"Bricolage Grotesque";color:var(--ink);font-weight:700;font-size:18px;margin:0 0 6px}
+.empty p{margin:0 0 16px;font-size:13.5px}
+
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);opacity:0;background:var(--ink);color:#fff;
+  padding:12px 18px;border-radius:12px;font-size:13.5px;font-weight:500;box-shadow:var(--shadow-lg);z-index:80;transition:.25s;pointer-events:none;max-width:90vw}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ---------- GEFOS / ŠUPLÍK ---------- */
+.wordmark{font-family:"Bricolage Grotesque";font-weight:800;font-size:22px;letter-spacing:.06em;color:var(--brand);line-height:1}
+.wordmark.big{font-size:40px;margin:0 auto 14px}
+.tab-count{display:inline-block;min-width:18px;padding:0 6px;margin-left:4px;border-radius:999px;background:var(--shelf-soft);color:var(--shelf);font-family:"JetBrains Mono";font-size:11px;line-height:18px}
+.tab-count:empty{display:none}
+.shelf-banner{display:flex;align-items:center;gap:12px;background:var(--shelf-soft);border:1px solid var(--shelf-line);border-radius:var(--r);padding:12px 16px;margin-bottom:20px;font-size:13.5px;color:#5C4612}
+.shelf-banner b{font-family:"JetBrains Mono"}
+.shelf-banner .btn-ghost{margin-left:auto;padding:7px 12px;font-size:13px}
+.form-section.shelf{color:var(--shelf)}
+.shelf-fields{background:var(--shelf-soft);border:1px solid var(--shelf-line);border-radius:12px;padding:14px 14px 2px;margin-top:4px}
+.drawer-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px}
+.drawer-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:16px;position:relative;overflow:hidden;display:flex;flex-direction:column;gap:10px}
+.drawer-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--dep,#ccc)}
+.drawer-card.due{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft),var(--shadow)}
+.drawer-card h4{margin:0;font-size:15.5px;font-weight:700;line-height:1.3}
+.drawer-card .desc{font-size:12.5px;color:var(--muted);margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.drawer-card .why{background:var(--shelf-soft);border:1px solid var(--shelf-line);border-radius:9px;padding:9px 10px;font-size:12.5px;color:#4D3B0F}
+.drawer-card .why .k{font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--shelf);display:block;margin-bottom:3px}
+.drawer-card .facts{display:flex;gap:6px;flex-wrap:wrap}
+.drawer-card .fact{font-size:11px;background:var(--paper);border:1px solid var(--line);border-radius:7px;padding:4px 8px}
+.drawer-card .fact.due{background:var(--accent-soft);border-color:#F2D9A6;color:#7A4D00;font-weight:700}
+.drawer-card .fact .mv{font-family:"JetBrains Mono";font-weight:700}
+.drawer-card .acts{display:flex;gap:8px;margin-top:auto;padding-top:10px;border-top:1px solid var(--line)}
+.drawer-card .acts .btn-primary{padding:8px 13px;font-size:13px}
+.drawer-card .acts .spacer{flex:1}
+.stars{color:var(--accent);letter-spacing:1px}
+.drawer-tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.drawer-tools select{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--surface)}
+
+@media (max-width:980px){
+  .stats{grid-template-columns:1fr 1fr}
+  .board{grid-template-columns:repeat(2,1fr)}
+  .split{grid-template-columns:1fr}
+  .form-sticky{position:static}
+}
+@media (max-width:620px){
+  nav.tabs{overflow-x:auto}
+  nav.tabs button{white-space:nowrap}
+  .drawer-grid{grid-template-columns:1fr}
+  .topbar-inner{flex-wrap:wrap;gap:10px;padding:11px 16px}
+  nav.tabs{order:3;width:100%;margin-left:0}
+  nav.tabs button{flex:1}
+  main{padding:20px 16px 70px}
+  .stats{grid-template-columns:1fr}
+  .board{grid-template-columns:1fr}
+  .field-row,.field-row3{grid-template-columns:1fr}
+  .view-head h2{font-size:23px}
+  .brand-lockup .logo-img{height:26px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="login">
+  <div class="login-card">
+    <div class="login-logo"><img src="logo.png" alt="GEFOS" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'wordmark big',textContent:'GEFOS'}))"></div>
+    <div class="login-eyebrow">AI Hub</div>
+    <h1>Vítejte zpět</h1>
+    <p class="sub">Zadejte společný PIN týmu</p>
+    <div class="pin-dots" id="pinDots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+    <div class="keypad" id="keypad">
+      <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+      <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+      <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+      <button class="util" data-k="clear">Smazat</button><button data-k="0">0</button><button class="util" data-k="back">⌫</button>
+    </div>
+    <div class="login-hint">Demo PIN pro tento koncept: <b id="hintPin">1234</b></div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app" class="hidden">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand-lockup">
+        <img class="logo-img" src="logo.png" alt="GEFOS" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'wordmark',textContent:'GEFOS'}))">
+        <span class="brand-sep"></span>
+        <span class="brand-sub">AI Hub</span>
+      </div>
+      <nav class="tabs" id="tabs">
+        <button data-view="dashboard" class="active">Nástěnka</button>
+        <button data-view="usecases">Use case</button>
+        <button data-view="drawer">V šuplíku <span class="tab-count" id="drawerCount"></span></button>
+        <button data-view="contacts">Kontakty</button>
+      </nav>
+      <div class="spacer"></div>
+      <span class="cloud-note" id="cloudNote"><span class="d"></span>Sdílená data</span>
+      <button class="btn-logout" id="logout">Odhlásit</button>
+    </div>
+  </header>
+  <main>
+    <section id="view-dashboard"></section>
+    <section id="view-usecases" class="hidden"></section>
+    <section id="view-drawer" class="hidden"></section>
+    <section id="view-contacts" class="hidden"></section>
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+/* =================== FIREBASE =================== */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+
+// ▼▼ FIREBASE – po založení vlastního projektu GEFOS sem vlož jeho config (viz README) ▼▼
+const firebaseConfig = {
+  apiKey: "AIzaSyCydTqTWGnEUuR7xZvBmo8YD1lONknJj4I",
+  authDomain: "mauting-use-case-hub.firebaseapp.com",
+  projectId: "mauting-use-case-hub",
+  storageBucket: "mauting-use-case-hub.firebasestorage.app",
+  messagingSenderId: "1040989840454",
+  appId: "1:1040989840454:web:000d7c93efabfc121b9647"
+};
+let fbReady = false;
+let db = null, auth = null;
+let authReady = false;
+try{
+  const fbApp = initializeApp(firebaseConfig);
+  db = getFirestore(fbApp);
+  auth = getAuth(fbApp);
+  fbReady = true;
+}catch(e){ console.error("Firebase init failed", e); }
+
+async function ensureAuth(){
+  if(!fbReady) return false;
+  if(authReady) return true;
+  try{ await signInAnonymously(auth); authReady=true; return true; }
+  catch(e){ console.error("Firebase auth failed", e); return false; }
+}
+
+/* =================== KONFIGURACE =================== */
+const PIN = "1234";
+document.getElementById('hintPin').textContent = PIN;
+
+
+const DEFAULT_DEPARTMENTS = [
+  {id:"obchod",    name:"Obchod",              hex:"#2563EB"},
+  {id:"servis",    name:"Servis a kalibrace",  hex:"#0891B2"},
+  {id:"podpora",   name:"Technická podpora",   hex:"#7C3AED"},
+  {id:"marketing", name:"Marketing",           hex:"#DB2777"},
+  {id:"nakup",     name:"Nákup a logistika",   hex:"#B7791F"},
+  {id:"vedeni",    name:"Vedení",              hex:"#15803D"},
+];
+const DEPT_PALETTE=["#BE123C","#0D9488","#7C2D12","#4338CA","#A21CAF","#525252","#0369A1","#9333EA","#65A30D","#C2410C"];
+const STATUSES = [
+  {id:"zadano",    name:"Zadáno",       hex:"#6B7280"},
+  {id:"vyhodnoc",  name:"Vyhodnocujeme",hex:"#2563EB"},
+  {id:"vbehu",     name:"V realizaci",  hex:"#D97706"},
+  {id:"hotovo",    name:"Hotovo",       hex:"#16A34A"},
+  {id:"zamitnuto", name:"Zamítnuto",    hex:"#DC2626"},
+  {id:"suplik",    name:"V šuplíku",    hex:"#8A6A1F"},
+];
+// Kanban na nástěnce ukazuje jen aktivní pipeline – šuplík má vlastní záložku
+const BOARD_STATUSES = STATUSES.filter(s=>s.id!=="suplik");
+const VALUE_LEVELS = [
+  {id:"",  name:"— nehodnoceno"},
+  {id:"5", name:"★★★★★ zásadní přínos"},
+  {id:"4", name:"★★★★ velký přínos"},
+  {id:"3", name:"★★★ střední přínos"},
+  {id:"2", name:"★★ menší přínos"},
+];
+const FREQUENCIES = [
+  {id:"denne",   name:"Denně"},
+  {id:"vicetyd", name:"Několikrát týdně"},
+  {id:"tydne",   name:"Týdně"},
+  {id:"mesicne", name:"Měsíčně"},
+  {id:"narazove",name:"Nárazově"},
+];
+
+const isDue = u => u.status==="suplik" && u.shelfRevisit && u.shelfRevisit <= new Date().toISOString().slice(0,7);
+const fmtMonth = m => { if(!m) return "—"; const [y,mo]=m.split("-"); return `${parseInt(mo,10)}/${y}`; };
+const stars = n => n ? "★".repeat(+n) : "";
+const dep = id => state.departments.find(d=>d.id===id) || {name:"—",hex:"#ccc"};
+const st  = id => STATUSES.find(s=>s.id===id) || {name:"—",hex:"#ccc"};
+const freq= id => FREQUENCIES.find(f=>f.id===id) || {name:"—"};
+
+/* =================== STAV / ÚLOŽIŠTĚ =================== */
+let state = { contacts:[], usecases:[], departments:[] };
+let editingUC=null, editingContact=null;
+let filterDep="all", filterStatus="all", drawerSort="revisit";
+
+const memFallback={};
+const COLLECTION="gefos-ai-hub";
+async function load(key,fb){
+  if(!fbReady) return (key in memFallback)?memFallback[key]:fb;
+  try{
+    const snap=await getDoc(doc(db,COLLECTION,key));
+    if(snap.exists()){ const data=snap.data(); memFallback[key]=data.value??fb; return data.value??fb; }
+    return fb;
+  }catch(e){ console.error("Firestore load error",e); toast("Nepodařilo se načíst sdílená data, zobrazuji lokální záznam"); return (key in memFallback)?memFallback[key]:fb; }
+}
+async function save(key,val){
+  memFallback[key]=val;
+  if(!fbReady) return;
+  try{ await setDoc(doc(db,COLLECTION,key),{value:val,updatedAt:Date.now()}); }
+  catch(e){ console.error("Firestore save error",e); toast("Data se nepodařilo uložit do Firebase"); }
+}
+function setCloudNote(){const n=document.getElementById('cloudNote');
+  n.innerHTML=fbReady?'<span class="d"></span>Sdíleno přes Firebase':'<span class="d off"></span>Firebase nedostupné — lokální náhled';}
+
+/* =================== POMOCNÉ =================== */
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const slug=s=>s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||("d"+uid());
+const initials=n=>(n||"?").trim().split(/\s+/).slice(0,2).map(w=>w[0]||"").join("").toUpperCase()||"?";
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2400);}
+function fmtSave(u){return u.saveValue?(u.saveValue+" "+(u.saveUnit==="min"?"min":"h")):"—";}
+
+/* =================== LOGIN =================== */
+let pinBuffer="";
+function renderDots(){document.querySelectorAll('#pinDots .dot').forEach((d,i)=>d.classList.toggle('on',i<pinBuffer.length));}
+function pinPress(k){const dots=document.getElementById('pinDots');dots.classList.remove('err');
+  if(k==="back")pinBuffer=pinBuffer.slice(0,-1);else if(k==="clear")pinBuffer="";else if(pinBuffer.length<4)pinBuffer+=k;
+  renderDots();
+  if(pinBuffer.length===4){setTimeout(()=>{if(pinBuffer===PIN)enterApp();else{dots.classList.add('err');pinBuffer="";setTimeout(renderDots,400);}},140);}}
+document.getElementById('keypad').addEventListener('click',e=>{const b=e.target.closest('button');if(b)pinPress(b.dataset.k);});
+window.addEventListener('keydown',e=>{if(document.getElementById('login').classList.contains('hidden'))return;
+  if(/^[0-9]$/.test(e.key))pinPress(e.key);else if(e.key==="Backspace")pinPress("back");});
+
+async function enterApp(){
+  document.getElementById('login').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  const ok=await ensureAuth();
+  if(!ok && fbReady){ toast("Nepodařilo se připojit ke sdílené databázi, zobrazují se jen lokální data"); }
+  setCloudNote();
+  state.contacts=await load("contacts",[]);
+  state.usecases=await load("usecases",[]);
+  state.departments=await load("departments",[]);
+  if(!state.departments.length){state.departments=DEFAULT_DEPARTMENTS.slice();save("departments",state.departments);}
+  const meta=await load("meta",null);
+  if(!meta||!meta.seeded){
+    seedDemo();
+    save("meta",{seeded:true});
+  }
+  renderAll();
+}
+document.getElementById('logout').addEventListener('click',()=>{pinBuffer="";renderDots();
+  document.getElementById('app').classList.add('hidden');document.getElementById('login').classList.remove('hidden');});
+
+function seedDemo(){
+  // Ukázková data – lze smazat přímo v aplikaci
+  state.contacts=[
+    {id:uid(),name:"Alena Sailerová",email:"",phone:""},
+  ];
+  const base={routine:"",frequency:"tydne",saveValue:0,saveUnit:"min",submitter:"Školení AI",devSolution:"",devPrice:"",devEffort:"",shelfReason:"",shelfRevisit:"",shelfTrigger:"",shelfValue:"",createdAt:Date.now()};
+  state.usecases=[
+    {...base,id:uid(),title:"Zápis aktivity do Intuo z diktátu",department:"obchod",status:"vyhodnoc",frequency:"denne",
+      description:"Po hovoru nebo schůzce nadiktuju poznámky, AI z nich udělá zápis aktivity (shrnutí, dohodnuté kroky, termín) a návrh follow-up e-mailu.",
+      routine:"Poznámky v telefonu nebo na papíře, večer přepis do CRM, často se to odkládá."},
+    {...base,id:uid(),title:"Překlad manuálů a datasheetů s glosářem",department:"podpora",status:"zadano",
+      description:"Překlad návodů a technických listů z angličtiny se stálým glosářem termínů a kontrolou, že se nezměnily hodnoty a jednotky.",
+      routine:"Ruční překlad nebo strojový překlad bez kontroly terminologie."},
+    {...base,id:uid(),title:"Odpovědi zákazníkům z podkladů",department:"podpora",status:"zadano",frequency:"vicetyd",
+      description:"AI odpovídá jen z nahraných manuálů a interních postupů, u každého kroku uvede zdroj. Co v podkladech není, předá technikovi.",
+      routine:"Hledání v PDF manuálech, psaní odpovědi od nuly."},
+    {...base,id:uid(),title:"Bitevní karta konkurenta",department:"obchod",status:"zadano",frequency:"mesicne",
+      description:"Jednostránkový přehled konkurenta (nabídka, servis, námitky zákazníků, otázky do jednání) připravený z Deep Research.",
+      routine:"Informace o konkurenci jsou v hlavách obchodníků, nikde sepsané."},
+    {...base,id:uid(),title:"Připomínky kalibrací z historie zákazníka",department:"servis",status:"suplik",frequency:"mesicne",
+      description:"Ze záznamů v CRM vytáhnout přístroje se blížící se kalibrací a připravit obchodníkovi seznam a návrh e-mailu zákazníkovi.",
+      routine:"Termíny kalibrací se hlídají ručně nebo vůbec.",
+      shelfReason:"Dobrý nápad, ale zatím nevíme, jak spolehlivě dostat data o přístrojích a kalibracích z Intuo.",
+      shelfTrigger:"Ověřený export z Intuo (přístroj, výrobní číslo, datum kalibrace).",
+      shelfRevisit:"2027-01",shelfValue:"4",shelvedAt:Date.now()},
+  ];
+  save("contacts",state.contacts);save("usecases",state.usecases);
+}
+
+/* =================== TABS =================== */
+document.getElementById('tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;switchTo(b.dataset.view);});
+function switchTo(view){
+  document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('active',x.dataset.view===view));
+  ['dashboard','usecases','drawer','contacts'].forEach(v=>document.getElementById('view-'+v).classList.toggle('hidden',v!==view));
+}
+
+/* =================== DEPARTMENTS =================== */
+function addDepartment(){
+  const name=(prompt("Název nového oddělení:")||"").trim();
+  if(!name) return null;
+  if(state.departments.some(d=>d.name.toLowerCase()===name.toLowerCase())){toast("Oddělení už existuje");return state.departments.find(d=>d.name.toLowerCase()===name.toLowerCase());}
+  const used=new Set(state.departments.map(d=>d.hex));
+  const hex=DEPT_PALETTE.find(h=>!used.has(h))||DEPT_PALETTE[state.departments.length%DEPT_PALETTE.length];
+  const d={id:slug(name),name,hex};
+  state.departments.push(d);save("departments",state.departments);
+  toast("Oddělení přidáno");
+  return d;
+}
+
+/* =================== RENDER =================== */
+function renderAll(){renderDashboard();renderUsecases();renderDrawer();renderContacts();}
+
+/* ---------- DASHBOARD ---------- */
+function renderDashboard(){
+  const root=document.getElementById('view-dashboard');
+  const all=state.usecases;
+  const dueCount=all.filter(isDue).length;
+  const counts={};STATUSES.forEach(s=>counts[s.id]=0);all.forEach(u=>counts[u.status]=(counts[u.status]||0)+1);
+
+  root.innerHTML=`
+    <div class="view-head">
+      <div>
+        <div class="eyebrow">Přehled týmu</div>
+        <h2>Nástěnka use case</h2>
+        <p>Náměty napříč odděleními a jejich stav v pipeline.</p>
+      </div>
+      <button class="btn-primary" id="goAdd">＋ Přidat use case</button>
+    </div>
+
+    <div class="stats">
+      <div class="stat" style="--sc:var(--ink)"><div class="label">Use case celkem</div><div class="big">${all.length}</div></div>
+      <div class="stat" style="--sc:${st('zadano').hex}"><div class="label">Nově zadáno</div><div class="big">${counts.zadano||0}</div></div>
+      <div class="stat" style="--sc:${st('vbehu').hex}"><div class="label">V realizaci</div><div class="big">${counts.vbehu||0}</div></div>
+      <div class="stat" style="--sc:${st('hotovo').hex}"><div class="label">Hotovo</div><div class="big">${counts.hotovo||0}</div></div>
+      <div class="stat" style="--sc:${st('suplik').hex}"><div class="label">V šuplíku</div><div class="big">${counts.suplik||0}</div></div>
+    </div>
+    ${dueCount?`<div class="shelf-banner">🗄 <span>V šuplíku ${dueCount===1?'je':'jsou'} <b>${dueCount}</b> ${dueCount===1?'use case, ke kterému':'use case, ke kterým'} je čas se vrátit.</span><button class="btn-ghost" id="goDrawer">Otevřít šuplík</button></div>`:""}
+
+    <div class="filterbar">
+      <div class="chips" id="depChips">
+        <span class="chips-label">Oddělení</span>
+        <button class="chip ${filterDep==='all'?'active':''}" data-dep="all">Vše</button>
+        ${state.departments.map(d=>`<button class="chip ${filterDep===d.id?'active':''}" data-dep="${d.id}"><span class="swatch" style="background:${d.hex}"></span>${esc(d.name)}</button>`).join("")}
+        <button class="chip add" id="addDepChip">＋ Oddělení</button>
+      </div>
+    </div>
+
+    <div class="board" id="board"></div>
+  `;
+
+  root.querySelector('#depChips').addEventListener('click',e=>{
+    const add=e.target.closest('#addDepChip');
+    if(add){const d=addDepartment();if(d)filterDep=d.id;renderAll();return;}
+    const b=e.target.closest('.chip');if(!b||!b.dataset.dep)return;filterDep=b.dataset.dep;renderDashboard();
+  });
+  root.querySelector('#goAdd').addEventListener('click',()=>switchTo('usecases'));
+  const gd=root.querySelector('#goDrawer'); if(gd) gd.addEventListener('click',()=>switchTo('drawer'));
+
+  const board=root.querySelector('#board');
+  let visible=all.filter(u=>filterDep==='all'||u.department===filterDep);
+  board.innerHTML=BOARD_STATUSES.map(s=>{
+    const items=visible.filter(u=>u.status===s.id);
+    return `<div class="col">
+      <div class="col-head"><span class="swatch" style="background:${s.hex}"></span>${s.name}<span class="count">${items.length}</span></div>
+      ${items.length?items.map(ucCard).join(""):`<div class="col-empty">Žádné položky</div>`}
+    </div>`;
+  }).join("");
+
+  board.querySelectorAll('select.status-mini').forEach(sel=>{
+    sel.addEventListener('click',e=>e.stopPropagation());
+    sel.addEventListener('change',()=>{
+      const uc=state.usecases.find(u=>u.id===sel.dataset.id);
+      if(uc){setStatus(uc,sel.value);}
+    });
+  });
+
+  board.querySelectorAll('[data-open]').forEach(card=>{
+    const open=()=>openUseCase(card.dataset.open);
+    card.addEventListener('click',open);
+    card.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}});
+  });
+}
+
+function setStatus(uc,newStatus){
+  if(newStatus==="suplik" && uc.status!=="suplik"){
+    const reason=prompt("Proč jde use case do šuplíku? (krátce)",uc.shelfReason||"");
+    if(reason===null){renderAll();return;}
+    uc.shelfReason=reason.trim();
+    const rev=prompt("Kdy se k tomu vrátit? (RRRR-MM, např. 2027-03)",uc.shelfRevisit||"");
+    if(rev && /^\d{4}-\d{2}$/.test(rev.trim())) uc.shelfRevisit=rev.trim();
+    uc.shelvedAt=Date.now();
+  }
+  uc.status=newStatus;
+  save("usecases",state.usecases);renderAll();
+  toast(newStatus==="suplik"?"Uloženo do šuplíku":"Stav aktualizován");
+}
+
+function openUseCase(id){
+  const uc=state.usecases.find(u=>u.id===id);
+  if(!uc) return;
+  editingUC=uc;
+  switchTo('usecases');
+  renderUsecases();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function ucCard(u){
+  const d=dep(u.department), s=st(u.status);
+  const hasDev=u.devSolution||u.devPrice||u.devEffort;
+  return `<div class="uc-card" style="--dep:${d.hex};--st:${s.hex}" data-open="${u.id}" tabindex="0" role="button" aria-label="Otevřít use case ${esc(u.title)}">
+    <span class="open-hint">Otevřít ↗</span>
+    <span class="dep-tag" style="--dep:${d.hex}"><span class="swatch" style="width:7px;height:7px;border-radius:50%;background:${d.hex}"></span>${esc(d.name)}</span>
+    <h4>${esc(u.title)}</h4>
+    <p class="desc">${esc(u.description||"Bez popisu")}</p>
+    <div class="metrics">
+      <span class="metric save">úspora <span class="mv">${fmtSave(u)}</span> ${esc(freq(u.frequency).name.toLowerCase())}</span>
+    </div>
+    ${hasDev?`<div class="dev-box">
+      <div class="dev-h">⚙ Reakce vývoje</div>
+      ${u.devSolution?`<p class="dev-sol">${esc(u.devSolution)}</p>`:""}
+      <div class="dev-pills">
+        ${u.devPrice?`<span class="dev-pill">Cena <span class="mv">${esc(u.devPrice)}</span></span>`:""}
+        ${u.devEffort?`<span class="dev-pill">Náročnost <span class="mv">${esc(u.devEffort)}</span></span>`:""}
+      </div>
+    </div>`:""}
+    <div class="foot">
+      <span class="who"><span class="av">${esc(initials(u.submitter))}</span><span>${esc(u.submitter||"Neznámý")}</span></span>
+      <select class="status-mini" data-id="${u.id}" style="--st:${s.hex}">
+        ${STATUSES.map(o=>`<option value="${o.id}" ${o.id===u.status?'selected':''}>${o.name}</option>`).join("")}
+      </select>
+    </div>
+  </div>`;
+}
+
+/* ---------- USE CASES ---------- */
+function renderUsecases(){
+  const root=document.getElementById('view-usecases');
+  const isEdit=!!editingUC; const u=editingUC||{};
+  root.innerHTML=`
+    <div class="view-head">
+      <div><div class="eyebrow">Náměty týmu</div><h2>Use case</h2>
+      <p>Přidávejte náměty na automatizaci, doplňujte reakci vývoje a spravujte stav.</p></div>
+    </div>
+    <div class="split">
+      <div class="panel form-sticky">
+        <div class="panel-head"><h3>${isEdit?"Upravit use case":"Přidat use case"}</h3>${isEdit?`<span class="badge-edit">Režim úprav</span>`:""}</div>
+        <div class="panel-body">
+          <div class="field"><label>Název use case</label><input id="uc-title" placeholder="Např. Automatický report prodejů" value="${esc(u.title||"")}"></div>
+          <div class="field"><label>Oddělení</label>
+            <div class="dep-select-row">
+              <select id="uc-dep">${state.departments.map(d=>`<option value="${d.id}" ${u.department===d.id?'selected':''}>${esc(d.name)}</option>`).join("")}</select>
+              <button class="btn-add-dep" id="uc-add-dep" title="Přidat oddělení">＋</button>
+            </div>
+          </div>
+          <div class="field"><label>Co to má dělat <span class="opt">— popis</span></label><textarea id="uc-desc" placeholder="Popište, co by řešení mělo dělat…">${esc(u.description||"")}</textarea></div>
+          <div class="field"><label>Opakovaná rutina <span class="opt">— jak to dnes probíhá</span></label><textarea id="uc-routine" placeholder="Jaké kroky se dnes opakují ručně…">${esc(u.routine||"")}</textarea></div>
+          <div class="field-row3">
+            <div class="field"><label>Jak často</label><select id="uc-freq">${FREQUENCIES.map(f=>`<option value="${f.id}" ${u.frequency===f.id?'selected':''}>${f.name}</option>`).join("")}</select></div>
+            <div class="field"><label>Úspora času</label>
+              <div class="field-row" style="grid-template-columns:1fr 84px">
+                <input id="uc-save" type="number" min="0" step="1" placeholder="0" value="${u.saveValue??""}">
+                <select id="uc-unit"><option value="min" ${u.saveUnit==='min'?'selected':''}>min</option><option value="h" ${u.saveUnit==='h'?'selected':''}>h</option></select>
+              </div>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Kdo zadal</label><input id="uc-who" list="contactNames" placeholder="Jméno" value="${esc(u.submitter||"")}">
+              <datalist id="contactNames">${state.contacts.map(c=>`<option value="${esc(c.name)}">`).join("")}</datalist></div>
+            <div class="field"><label>Stav</label><select id="uc-status">${STATUSES.map(s=>`<option value="${s.id}" ${u.status===s.id?'selected':''}>${s.name}</option>`).join("")}</select></div>
+          </div>
+
+          <div class="form-section">⚙ Reakce vývoje</div>
+          <div class="field"><label>Návrh řešení</label><textarea id="uc-devsol" placeholder="Jak na to vývoj plánuje jít…">${esc(u.devSolution||"")}</textarea></div>
+          <div class="field-row">
+            <div class="field"><label>Cena</label><input id="uc-devprice" placeholder="Např. 45 000 Kč" value="${esc(u.devPrice||"")}"></div>
+            <div class="field"><label>Časová náročnost</label><input id="uc-deveffort" placeholder="Např. 8 člověkodnů" value="${esc(u.devEffort||"")}"></div>
+          </div>
+
+          <div id="shelfBlock" class="${u.status==='suplik'?'':'hidden'}">
+            <div class="form-section shelf">🗄 V šuplíku</div>
+            <div class="shelf-fields">
+              <div class="field"><label>Proč je odložený</label><textarea id="uc-shelfreason" placeholder="Např. čeká na data z CRM, teď není kapacita…">${esc(u.shelfReason||"")}</textarea></div>
+              <div class="field"><label>Co musí nastat, aby se vytáhl <span class="opt">— podmínka</span></label><input id="uc-shelftrigger" placeholder="Např. schválený firemní AI nástroj" value="${esc(u.shelfTrigger||"")}"></div>
+              <div class="field-row">
+                <div class="field"><label>Vrátit se k tomu</label><input id="uc-shelfrevisit" type="month" value="${esc(u.shelfRevisit||"")}"></div>
+                <div class="field"><label>Přínos</label><select id="uc-shelfvalue">${VALUE_LEVELS.map(v=>`<option value="${v.id}" ${(u.shelfValue||"")===v.id?'selected':''}>${v.name}</option>`).join("")}</select></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn-primary" id="uc-save-btn">${isEdit?"Uložit změny":"Přidat use case"}</button>
+            ${isEdit?`<button class="btn-ghost" id="uc-cancel">Zrušit</button>`:""}
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="chips" style="margin-bottom:14px" id="ucStatusFilter">
+          <span class="chips-label">Filtr stavu</span>
+          <button class="chip ${filterStatus==='all'?'active':''}" data-st="all">Vše (${state.usecases.length})</button>
+          ${STATUSES.map(s=>{const c=state.usecases.filter(x=>x.status===s.id).length;return `<button class="chip ${filterStatus===s.id?'active':''}" data-st="${s.id}"><span class="swatch" style="background:${s.hex}"></span>${s.name} (${c})</button>`}).join("")}
+        </div>
+        <div class="uc-list" id="ucList"></div>
+      </div>
+    </div>
+  `;
+
+  root.querySelector('#uc-save-btn').addEventListener('click',saveUC);
+  root.querySelector('#uc-status').addEventListener('change',e=>{root.querySelector('#shelfBlock').classList.toggle('hidden',e.target.value!=='suplik');});
+  root.querySelector('#uc-add-dep').addEventListener('click',()=>{const d=addDepartment();if(d){if(editingUC)editingUC.department=d.id;renderUsecases();const sel=document.getElementById('uc-dep');if(sel)sel.value=d.id;}});
+  const cancel=root.querySelector('#uc-cancel');if(cancel)cancel.addEventListener('click',()=>{editingUC=null;renderUsecases();});
+  root.querySelector('#ucStatusFilter').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;filterStatus=b.dataset.st;renderUsecases();});
+
+  const list=root.querySelector('#ucList');
+  let items=state.usecases.filter(u=>filterStatus==='all'||u.status===filterStatus).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  if(items.length===0){list.innerHTML=`<div class="empty"><div class="ico">◔</div><h3>Zatím tu nic není</h3><p>Přidejte první use case ve formuláři vlevo.</p></div>`;}
+  else{
+    list.innerHTML=items.map(ucRow).join("");
+    list.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>{editingUC=state.usecases.find(u=>u.id===b.dataset.edit);renderUsecases();window.scrollTo({top:0,behavior:'smooth'});}));
+    list.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>{if(confirm("Opravdu smazat tento use case?")){state.usecases=state.usecases.filter(u=>u.id!==b.dataset.del);save("usecases",state.usecases);if(editingUC&&editingUC.id===b.dataset.del)editingUC=null;renderAll();toast("Use case smazán");}}));
+  }
+}
+function ucRow(u){
+  const d=dep(u.department), s=st(u.status);
+  const hasDev=u.devSolution||u.devPrice||u.devEffort;
+  return `<div class="uc-row" style="--dep:${d.hex}">
+    <div class="spine"></div>
+    <div class="main">
+      <h4>${esc(u.title)}</h4>
+      <div class="meta">
+        <span class="pill"><span class="sw" style="background:${d.hex}"></span>${esc(d.name)}</span>
+        <span class="pill"><span class="sw" style="background:${s.hex}"></span>${esc(s.name)}</span>
+        <span class="pill">${esc(freq(u.frequency).name)} · ${fmtSave(u)}</span>
+        <span class="pill">${esc(u.submitter||"—")}</span>
+        ${u.status==="suplik"&&u.shelfRevisit?`<span class="pill">🗄 vrátit se ${fmtMonth(u.shelfRevisit)}</span>`:""}
+        ${hasDev?`<span class="pill dev">⚙ Reakce vývoje${u.devPrice?" · "+esc(u.devPrice):""}${u.devEffort?" · "+esc(u.devEffort):""}</span>`:""}
+      </div>
+    </div>
+    <div class="ops">
+      <button class="icon-btn" data-edit="${u.id}" title="Upravit">✎</button>
+      <button class="icon-btn danger" data-del="${u.id}" title="Smazat">🗑</button>
+    </div>
+  </div>`;
+}
+function saveUC(){
+  const v=id=>document.getElementById(id);
+  const title=v('uc-title').value.trim();
+  if(!title){toast("Vyplňte název use case");v('uc-title').focus();return;}
+  const data={title,department:v('uc-dep').value,description:v('uc-desc').value.trim(),routine:v('uc-routine').value.trim(),
+    frequency:v('uc-freq').value,saveValue:parseFloat(v('uc-save').value)||0,saveUnit:v('uc-unit').value,
+    submitter:v('uc-who').value.trim(),status:v('uc-status').value,
+    devSolution:v('uc-devsol').value.trim(),devPrice:v('uc-devprice').value.trim(),devEffort:v('uc-deveffort').value.trim(),
+    shelfReason:v('uc-shelfreason').value.trim(),shelfTrigger:v('uc-shelftrigger').value.trim(),
+    shelfRevisit:v('uc-shelfrevisit').value,shelfValue:v('uc-shelfvalue').value};
+  if(data.status==="suplik" && (!editingUC || editingUC.status!=="suplik")) data.shelvedAt=Date.now();
+  if(editingUC){Object.assign(editingUC,data);toast("Změny uloženy");editingUC=null;}
+  else{state.usecases.push({id:uid(),createdAt:Date.now(),...data});toast("Use case přidán");}
+  save("usecases",state.usecases);renderAll();
+}
+
+/* ---------- V ŠUPLÍKU ---------- */
+function renderDrawer(){
+  const root=document.getElementById('view-drawer');
+  const items=state.usecases.filter(u=>u.status==="suplik");
+  const due=items.filter(isDue).length;
+  document.getElementById('drawerCount').textContent=items.length||"";
+  const sorters={
+    revisit:(a,b)=>(a.shelfRevisit||"9999")<(b.shelfRevisit||"9999")?-1:1,
+    value:(a,b)=>(+b.shelfValue||0)-(+a.shelfValue||0),
+    newest:(a,b)=>(b.shelvedAt||0)-(a.shelvedAt||0),
+  };
+  items.sort(sorters[drawerSort]||sorters.revisit);
+  root.innerHTML=`
+    <div class="view-head">
+      <div><div class="eyebrow">Dobré nápady na později</div><h2>V šuplíku</h2>
+      <p>Use case, které jsme vyhodnotili jako dobré, ale jejich řešení jsme posunuli. Nic se neztratí – jen čeká na správnou chvíli.</p></div>
+    </div>
+    ${due?`<div class="shelf-banner">⏰ <span>U <b>${due}</b> ${due===1?'položky':'položek'} už nastal termín „vrátit se k tomu“. Rozhodněte: vytáhnout, nebo posunout.</span></div>`:""}
+    ${items.length?`<div class="drawer-tools"><span class="chips-label" style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Řadit</span>
+      <select id="drawerSort">
+        <option value="revisit" ${drawerSort==='revisit'?'selected':''}>Podle termínu návratu</option>
+        <option value="value" ${drawerSort==='value'?'selected':''}>Podle přínosu</option>
+        <option value="newest" ${drawerSort==='newest'?'selected':''}>Naposledy odložené</option>
+      </select></div>
+      <div class="drawer-grid">${items.map(drawerCard).join("")}</div>`
+    :`<div class="empty"><div class="ico">🗄</div><h3>Šuplík je prázdný</h3><p>Use case sem přesunete změnou stavu na „V šuplíku“ – na nástěnce nebo ve formuláři.</p></div>`}
+  `;
+  const sel=root.querySelector('#drawerSort'); if(sel) sel.addEventListener('change',()=>{drawerSort=sel.value;renderDrawer();});
+  root.querySelectorAll('[data-pull]').forEach(b=>b.addEventListener('click',()=>{
+    const uc=state.usecases.find(u=>u.id===b.dataset.pull); if(!uc) return;
+    uc.status=b.dataset.to; uc.pulledAt=Date.now();
+    save("usecases",state.usecases); renderAll(); toast("Vytaženo ze šuplíku – je zpět v pipeline");
+  }));
+  root.querySelectorAll('[data-postpone]').forEach(b=>b.addEventListener('click',()=>{
+    const uc=state.usecases.find(u=>u.id===b.dataset.postpone); if(!uc) return;
+    const rev=prompt("Nový termín návratu (RRRR-MM):",uc.shelfRevisit||"");
+    if(rev && /^\d{4}-\d{2}$/.test(rev.trim())){uc.shelfRevisit=rev.trim();save("usecases",state.usecases);renderAll();toast("Termín posunut");}
+    else if(rev!==null) toast("Zadejte termín ve tvaru RRRR-MM");
+  }));
+  root.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>openUseCase(b.dataset.edit)));
+}
+function drawerCard(u){
+  const d=dep(u.department), due=isDue(u);
+  return `<div class="drawer-card ${due?'due':''}" style="--dep:${d.hex}">
+    <span class="dep-tag" style="--dep:${d.hex};display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:${d.hex};align-self:flex-start"><span style="width:7px;height:7px;border-radius:50%;background:${d.hex}"></span>${esc(d.name)}</span>
+    <h4>${esc(u.title)}</h4>
+    ${u.description?`<p class="desc">${esc(u.description)}</p>`:""}
+    ${u.shelfReason?`<div class="why"><span class="k">Proč čeká</span>${esc(u.shelfReason)}</div>`:""}
+    ${u.shelfTrigger?`<div class="why" style="background:var(--paper);border-color:var(--line);color:var(--ink)"><span class="k" style="color:var(--muted)">Vytáhneme, až…</span>${esc(u.shelfTrigger)}</div>`:""}
+    <div class="facts">
+      <span class="fact ${due?'due':''}">${due?'⏰ ':''}vrátit se <span class="mv">${fmtMonth(u.shelfRevisit)}</span></span>
+      ${u.shelfValue?`<span class="fact">přínos <span class="stars">${stars(u.shelfValue)}</span></span>`:""}
+      ${u.saveValue?`<span class="fact">úspora <span class="mv">${fmtSave(u)}</span> ${esc(freq(u.frequency).name.toLowerCase())}</span>`:""}
+      ${u.submitter?`<span class="fact">${esc(u.submitter)}</span>`:""}
+    </div>
+    <div class="acts">
+      <button class="btn-primary" data-pull="${u.id}" data-to="vyhodnoc" title="Vrátit do stavu Vyhodnocujeme">↩ Vytáhnout</button>
+      <button class="btn-ghost" data-postpone="${u.id}">Posunout</button>
+      <span class="spacer"></span>
+      <button class="icon-btn" data-edit="${u.id}" title="Upravit">✎</button>
+    </div>
+  </div>`;
+}
+
+/* ---------- CONTACTS ---------- */
+function renderContacts(){
+  const root=document.getElementById('view-contacts');
+  const isEdit=!!editingContact; const c=editingContact||{};
+  root.innerHTML=`
+    <div class="view-head"><div><div class="eyebrow">Databáze týmu</div><h2>Kontakty</h2>
+      <p>Lidé zapojení do sdílení use case. Přidávejte, upravujte a odebírejte.</p></div></div>
+    <div class="split">
+      <div class="panel form-sticky">
+        <div class="panel-head"><h3>${isEdit?"Upravit kontakt":"Přidat kontakt"}</h3>${isEdit?`<span class="badge-edit">Režim úprav</span>`:""}</div>
+        <div class="panel-body">
+          <div class="field"><label>Jméno</label><input id="c-name" placeholder="Jméno a příjmení" value="${esc(c.name||"")}"></div>
+          <div class="field"><label>E-mail</label><input id="c-email" type="email" placeholder="jmeno@gefos.cz" value="${esc(c.email||"")}"></div>
+          <div class="field"><label>Telefon</label><input id="c-phone" placeholder="+420 …" value="${esc(c.phone||"")}"></div>
+          <div class="form-actions"><button class="btn-primary" id="c-save-btn">${isEdit?"Uložit změny":"Přidat kontakt"}</button>${isEdit?`<button class="btn-ghost" id="c-cancel">Zrušit</button>`:""}</div>
+        </div>
+      </div>
+      <div>${state.contacts.length?`<div class="contact-grid" id="contactGrid"></div>`:`<div class="empty"><div class="ico">◍</div><h3>Žádné kontakty</h3><p>Přidejte první osobu do databáze týmu.</p></div>`}</div>
+    </div>
+  `;
+  root.querySelector('#c-save-btn').addEventListener('click',saveContact);
+  const cancel=root.querySelector('#c-cancel');if(cancel)cancel.addEventListener('click',()=>{editingContact=null;renderContacts();});
+  const grid=root.querySelector('#contactGrid');
+  if(grid){
+    grid.innerHTML=state.contacts.map(c=>`<div class="contact-card">
+      <div class="av">${esc(initials(c.name))}</div>
+      <div class="ci"><h4>${esc(c.name)}</h4>${c.email?`<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>`:""}${c.phone?`<span class="ph">${esc(c.phone)}</span>`:""}</div>
+      <div class="cops"><button class="icon-btn" data-edit="${c.id}" title="Upravit">✎</button><button class="icon-btn danger" data-del="${c.id}" title="Smazat">🗑</button></div>
+    </div>`).join("");
+    grid.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>{editingContact=state.contacts.find(x=>x.id===b.dataset.edit);renderContacts();window.scrollTo({top:0,behavior:'smooth'});}));
+    grid.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>{if(confirm("Opravdu odebrat tento kontakt?")){state.contacts=state.contacts.filter(x=>x.id!==b.dataset.del);save("contacts",state.contacts);if(editingContact&&editingContact.id===b.dataset.del)editingContact=null;renderContacts();renderDashboard();toast("Kontakt odebrán");}}));
+  }
+}
+function saveContact(){
+  const name=document.getElementById('c-name').value.trim();
+  if(!name){toast("Vyplňte jméno");document.getElementById('c-name').focus();return;}
+  const data={name,email:document.getElementById('c-email').value.trim(),phone:document.getElementById('c-phone').value.trim()};
+  if(editingContact){Object.assign(editingContact,data);toast("Kontakt upraven");editingContact=null;}
+  else{state.contacts.push({id:uid(),...data});toast("Kontakt přidán");}
+  save("contacts",state.contacts);renderContacts();renderDashboard();
+}
+
+renderDots();
+</script>
+</body>
+</html>
