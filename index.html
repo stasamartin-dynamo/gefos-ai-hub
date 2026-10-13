@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.webmanifest">
-<meta name="theme-color" content="#14263B">
+<meta name="theme-color" content="#FFFFFF">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="GEFOS AI Hub">
@@ -17,11 +17,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --paper:#EEF2F6; --surface:#FFFFFF; --ink:#161A1D; --muted:#697079;
+  --paper:#F1F1F3; --surface:#FFFFFF; --ink:#161A1D; --muted:#697079;
   --line:#E2E5E9; --line-strong:#D2D7DD;
   /* GEFOS – barvy na jednom místě (uprav podle loga) */
-  --primary:#14263B; --primary-2:#0B1828; --primary-soft:#E6ECF3;
-  --brand:#1487C7; --brand-2:#0E6FA6; --brand-soft:#E4F4FC; --brand-line:#B5DFF4; --logo-blue:#2EA8E6;
+  --primary:#2B2B2F; --primary-2:#18181B; --primary-soft:#EDEDEF;
+  --brand:#D7082A; --brand-2:#B30622; --brand-soft:#FDE8EB; --brand-line:#F6BCC5; --logo-red:#EC0928; --logo-gray:#77777B;
   --accent:#D98A00; --accent-soft:#FFF1D6;
   --shelf:#8A6A1F; --shelf-soft:#F6EFDD; --shelf-line:#E5D6AE;
   --dev:#0E5C56; --dev-soft:#E1F0EE;
@@ -48,7 +48,7 @@ input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
   background-size:44px 44px;mask-image:radial-gradient(circle at 50% 40%,#000,transparent 75%)}
 .login-card{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:22px;
   box-shadow:var(--shadow-lg);width:100%;max-width:390px;padding:32px 30px 28px;text-align:center}
-.login-logo img{width:190px;max-width:70%;height:auto;display:block;margin:0 auto 16px;background:var(--primary);padding:14px 20px;border-radius:16px}
+.login-logo img{width:190px;max-width:70%;height:auto;display:block;margin:0 auto 16px}
 .login-eyebrow{font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--brand);margin-bottom:16px}
 .login-card h1{font-family:"Bricolage Grotesque";font-weight:700;font-size:22px;margin:0 0 4px;letter-spacing:-.02em}
 .login-card p.sub{color:var(--muted);font-size:13.5px;margin:0 0 22px}
@@ -71,7 +71,7 @@ input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
 header.topbar{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.9);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .topbar-inner{max-width:1180px;margin:0 auto;padding:11px 22px;display:flex;align-items:center;gap:16px}
 .brand-lockup{display:flex;align-items:center;gap:13px}
-.brand-lockup .logo-img{height:36px;display:block;background:var(--primary);padding:5px 10px;border-radius:9px;box-sizing:content-box}
+.brand-lockup .logo-img{height:38px;display:block}
 .brand-sep{width:1px;height:22px;background:var(--line-strong)}
 .brand-sub{font-family:"Bricolage Grotesque";font-weight:700;font-size:15px;color:var(--ink);letter-spacing:-.01em}
 nav.tabs{display:flex;gap:4px;margin-left:6px;background:var(--paper);padding:4px;border-radius:12px}
@@ -263,7 +263,7 @@ main{max-width:1180px;margin:0 auto;padding:26px 22px 80px;width:100%;flex:1}
   .board{grid-template-columns:1fr}
   .field-row,.field-row3{grid-template-columns:1fr}
   .view-head h2{font-size:23px}
-  .brand-lockup .logo-img{height:28px}
+  .brand-lockup .logo-img{height:30px}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
 </style>
